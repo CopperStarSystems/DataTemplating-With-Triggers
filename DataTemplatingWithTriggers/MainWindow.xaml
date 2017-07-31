@@ -1,0 +1,83 @@
+﻿<Window x:Class="DataTemplatingWithTriggers.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:DataTemplatingWithTriggers"
+        xmlns:converter="clr-namespace:DataTemplatingWithTriggers.Converter"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="350" Width="525">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition />
+            <ColumnDefinition />
+        </Grid.ColumnDefinitions>
+
+        <ListBox x:Name="PopulationList" ItemsSource="{Binding ListItems}" SelectedItem="{Binding SelectedListItem}"
+                 Grid.Column="0">
+
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <DataTemplate.Resources>
+                        <!-- We specify the properties for our Ellipse in a style
+                             because we want to be able to override them in the DataTrigger.
+                             If we set them directly, we won't be able to do that due to
+                             WPF's rules of Property Precedence. -->
+                        <Style TargetType="{x:Type Ellipse}">
+                            <Setter Property="Fill" Value="Red" />
+                            <Setter Property="Height" Value="25" />
+                            <Setter Property="Width" Value="25" />
+                        </Style>
+
+                        <!-- Converter used to determine if a given ItemsControl item is
+                             the same as the currently-selected item.-->
+                        <converter:IsSelectedItemConverter x:Key="IsSelectedItemConverter" />
+                    </DataTemplate.Resources>
+
+                    <!-- Render the item as an Ellipse with properties from the style above -->
+                    <Ellipse Name="Ellipse" />
+
+                    <!-- The magic happens here, in the Triggers collection... -->
+                    <DataTemplate.Triggers>
+                        <!-- When the result from our MultiBinding returns true, this DataTrigger will
+                             become active. -->
+                        <DataTrigger Value="True">
+                            <!-- When using a MultiBinding, we have to use this syntax
+                                 instead of the usual "Binding={Binding...}" syntax because
+                                 we need to provide multiple inputs for the converter. -->
+                            <DataTrigger.Binding>
+                                <!-- MultiBindings let us provide multiple inputs to a specialized
+                                     ValueConverter (one that takes multiple inputs instead of a single
+                                     one. -->
+                                <MultiBinding Converter="{StaticResource IsSelectedItemConverter}">
+                                    <!-- This binding gives us the value of SelectedListItem from the outer
+                                         DataContext.
+                                         
+                                         We have to use RelativeSource here in order to access the DataContext's 
+                                         SelectedListItem property because we're inside an ItemContainer at this point. -->
+                                    <Binding RelativeSource="{RelativeSource FindAncestor, AncestorType=ItemsControl}"
+                                             Path="DataContext.SelectedListItem" />
+
+                                    <!-- This Binding represents the current ListBoxItem's value (i.e. the current item).
+                                         It's basically the same as this BindingExpression:  {Binding} -->
+                                    <Binding />
+                                </MultiBinding>
+                            </DataTrigger.Binding>
+
+                            <!-- When our DataTrigger evaluates to the specified value (True in this case),
+                                 these property values will be applied.  When the DataTrigger evaluates to False,
+                                 values will automatically revert back to the ones from the style above. -->
+                            <DataTrigger.Setters>
+                                <Setter TargetName="Ellipse" Property="Fill" Value="Green" />
+                            </DataTrigger.Setters>
+                        </DataTrigger>
+                    </DataTemplate.Triggers>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <!-- Second ListBox to let us select ListItems independently of the first.  Both ListBoxes are 
+             bound to the same ViewModel properties, so they will remain in sync automatically. -->
+        <ListBox Grid.Column="1" ItemsSource="{Binding ListItems}" SelectedItem="{Binding SelectedListItem}" />
+    </Grid>
+</Window>
